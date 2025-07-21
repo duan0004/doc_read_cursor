@@ -9,6 +9,9 @@
 - **关键词提取** - 智能识别核心概念和术语
 - **交互式问答** - 基于文献内容的智能对话
 - **结构化展示** - 美观的摘要和内容可视化
+- **文献检索** - 集成 arXiv 和 Semantic Scholar 双引擎检索
+- **引用分析** - 智能分析论文引用次数和影响力
+- **开放获取** - 支持开放获取论文的PDF下载
 - **多模型支持** - 支持OpenAI、文心一言等多种LLM
 
 ## 🏗️ 技术架构
@@ -25,7 +28,8 @@
 - **前端**: Next.js 14, React, TypeScript, Tailwind CSS
 - **后端**: Node.js, Express, TypeScript
 - **数据库**: PostgreSQL, Redis
-- **AI服务**: OpenAI GPT-4, 文心一言
+- **AI服务**: OpenAI GPT-4, 文心一言, DeepSeek
+- **文献检索**: arXiv API, Semantic Scholar API
 - **文档处理**: PDF.js, PyMuPDF
 - **向量化**: FAISS, LangChain
 
@@ -66,12 +70,13 @@ cp backend/.env.example backend/.env
 3. **配置环境变量** (编辑 `backend/.env`)
 ```bash
 # 必需配置
-OPENAI_API_KEY=your_openai_api_key_here
+DEEPSEEK_API_KEY=your_deepseek_api_key_here
 
 # 可选配置
+SEMANTIC_API_KEY=your_semantic_scholar_api_key_here
 DATABASE_URL=postgresql://username:password@localhost:5432/doc_read_ai
 REDIS_URL=redis://localhost:6379
-PORT=5000
+PORT=8000
 CORS_ORIGIN=http://localhost:3000
 ```
 
@@ -130,6 +135,80 @@ Response: {
 }
 ```
 
+### arXiv 文献检索
+```http
+GET /api/arxiv/search?keywords=keyword1,keyword2&days=21
+Response: {
+  success: boolean,
+  data: [
+    {
+      id: string,
+      title: string,
+      summary: string,
+      authors: string[],
+      published: string,
+      link: string,
+      semantic_score: number
+    }
+  ]
+}
+```
+
+### Semantic Scholar 文献检索
+```http
+GET /api/semantic/search?query=search_term&year=2023&limit=20
+Response: {
+  success: boolean,
+  data: {
+    papers: [
+      {
+        id: string,
+        title: string,
+        abstract: string,
+        authors: Array<{id: string, name: string}>,
+        year: number,
+        venue: string,
+        url: string,
+        citationCount: number,
+        influentialCitationCount: number,
+        isOpenAccess: boolean,
+        openAccessPdf: string,
+        publicationDate: string,
+        publicationTypes: string[],
+        publicationVenue: string,
+        referenceCount: number,
+        fieldsOfStudy: string[]
+      }
+    ],
+    total: number,
+    offset: number,
+    limit: number
+  }
+}
+```
+
+### 论文详情获取
+```http
+GET /api/semantic/paper/:paperId
+Response: {
+  success: boolean,
+  data: {
+    // 论文详细信息，包含引用和参考文献
+  }
+}
+```
+
+### 作者信息获取
+```http
+GET /api/semantic/author/:authorId
+Response: {
+  success: boolean,
+  data: {
+    // 作者详细信息，包含论文列表
+  }
+}
+```
+
 ## 🗄️ 数据库设计
 
 ```sql
@@ -179,6 +258,10 @@ CREATE TABLE document_chunks (
 - 文档列表管理
 - 响应式Web界面
 - 系统健康检查
+- arXiv 文献检索（支持语义重排序）
+- Semantic Scholar 文献检索（支持引用分析）
+- 论文详情和作者信息获取
+- 开放获取论文PDF下载
 
 🚧 **开发中功能**
 - 数据库持久化存储

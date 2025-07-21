@@ -1,5 +1,6 @@
 import React from 'react';
-import { FileText, BookOpen, MessageCircle, Sun, Moon } from 'lucide-react';
+import { FileText, BookOpen, MessageCircle, Sun, Moon, Search } from 'lucide-react';
+import Link from 'next/link';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -30,6 +31,13 @@ export const Header: React.FC<HeaderProps> = ({ darkMode, toggleDarkMode }) => {
               <FileText className="w-4 h-4" />
               <span>文件上传</span>
             </a>
+            <Link
+              href="/semantic"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Search className="w-4 h-4" />
+              <span>文献检索</span>
+            </Link>
             <a
               href="#documents"
               className="flex items-center space-x-2 px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"

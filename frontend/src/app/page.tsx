@@ -5,6 +5,7 @@ import { FileUpload } from "@/components/FileUpload";
 import { FeatureCard } from "@/components/FeatureCards";
 import { SearchBar } from "@/components/SearchBar";
 import { ProcessSteps } from "@/components/ProcessSteps";
+import SemanticSearch from "@/components/SemanticSearch";
 import {
   Upload,
   FileText,
@@ -22,6 +23,7 @@ import {
 
 export default function HomePage() {
   const [darkMode, setDarkMode] = useState(false);
+  const [searchTab, setSearchTab] = useState<'arxiv' | 'semantic'>('arxiv');
 
   useEffect(() => {
     if (darkMode) {
@@ -183,8 +185,35 @@ export default function HomePage() {
                     通过关键词快速发现相关学术文献，AI助力精准匹配
                   </p>
                 </div>
+                
+                {/* 搜索标签页切换 */}
+                <div className="mb-6">
+                  <div className="flex space-x-1 bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
+                    <button
+                      onClick={() => setSearchTab('arxiv')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        searchTab === 'arxiv'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      arXiv 检索
+                    </button>
+                    <button
+                      onClick={() => setSearchTab('semantic')}
+                      className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                        searchTab === 'semantic'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                      }`}
+                    >
+                      Semantic Scholar
+                    </button>
+                  </div>
+                </div>
+                
                 <div className="mb-8">
-                  <SearchBar />
+                  {searchTab === 'arxiv' ? <SearchBar /> : <SemanticSearch />}
                 </div>
                 {/* 检索功能特点 */}
                 <div className="space-y-4">
@@ -192,7 +221,7 @@ export default function HomePage() {
                     <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
                       <Zap className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     </div>
-                    <span>arXiv智能检索</span>
+                    <span>arXiv & Semantic Scholar 双引擎</span>
                   </div>
                   <div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
                     <div className="w-8 h-8 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg flex items-center justify-center">
@@ -205,6 +234,12 @@ export default function HomePage() {
                       <Eye className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     </div>
                     <span>实时结果预览</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-gray-700 dark:text-gray-300">
+                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                      <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <span>引用分析 & 开放获取</span>
                   </div>
                 </div>
               </div>

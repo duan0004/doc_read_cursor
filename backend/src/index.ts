@@ -9,6 +9,7 @@ import uploadRoutes from './routes/upload';
 import documentRoutes from './routes/document';
 import aiRoutes from './routes/ai';
 import arxivRoutes from './routes/arxiv';
+import semanticRoutes from './routes/semantic';
 
 import { notFound } from './middleware/notFound';
 import { errorHandler } from './middleware/errorHandler';
@@ -43,6 +44,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/arxiv', arxivRoutes);
+app.use('/api/semantic', semanticRoutes);
 
 // 错误处理中间件
 app.use(notFound);
