@@ -64,7 +64,7 @@ router.post('/pdf', upload.single('file'), async (req: Request, res: Response): 
       const pdfData = await pdfParse(dataBuffer);
       pageCount = pdfData.numpages;
       textContent = pdfData.text;
-    } catch (err) {
+    } catch (err: any) {
       console.error('PDF解析失败:', err);
     }
     const documentInfo = {

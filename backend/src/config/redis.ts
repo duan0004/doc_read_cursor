@@ -18,7 +18,7 @@ export async function connectRedis() {
       url: process.env.REDIS_URL,
     });
 
-    redisClient.on('error', (err) => {
+    redisClient.on('error', (err: any) => {
       console.error('Redis连接错误:', err);
     });
 

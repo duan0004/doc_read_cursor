@@ -80,7 +80,7 @@ router.get('/search', async (req: Request, res: Response) => {
     // 解析 Atom XML，使用 Promise 包装 parseString，避免类型和参数问题
     const parser = new Parser({ explicitArray: false });
     const result: any = await new Promise((resolve, reject) => {
-      parser.parseString(xml, (err, res) => {
+      parser.parseString(xml, (err: any, res) => {
         if (err) reject(err);
         else resolve(res);
       });
