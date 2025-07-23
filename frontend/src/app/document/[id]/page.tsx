@@ -1,156 +1,161 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { FiArrowLeft, FiDownload, FiMessageCircle, FiKey, FiFileText } from 'react-icons/fi';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
-import ReactMarkdown from 'react-markdown';
+import { FiArrowLeft, FiFileText, FiMessageCircle, FiDownload, FiTrash2 } from 'react-icons/fi';
+import axios from 'axios';
+import { KeywordExtraction } from '@/components/KeywordExtraction';
 
-interface DocumentDetail {
+interface DocumentInfo {
   file_id: string;
   original_name: string;
   file_size: number;
   page_count: number;
   upload_time: string;
-  summary?: string;
+  summary?: {
+    purpose: string;
+    method: string;
+    finding: string;
+    conclusion: string;
+    keywords: string;
+  };
   keywords?: string[];
-  text_preview: string;
+}
+
+interface QARecord {
+  id: string;
+  question: string;
+  answer: string;
+  created_at: string;
 }
 
 export default function DocumentDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const [document, setDocument] = useState<DocumentDetail | null>(null);
+  const fileId = params.id as string;
+  
+  const [document, setDocument] = useState<DocumentInfo | null>(null);
+  const [qaHistory, setQAHistory] = useState<QARecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
   const [question, setQuestion] = useState('');
-  const [answer, setAnswer] = useState('');
-  const [askingQuestion, setAskingQuestion] = useState(false);
+  const [askLoading, setAskLoading] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
-    if (params.id) {
-      fetchDocument(params.id as string);
+    if (fileId) {
+      fetchDocumentDetail();
+      fetchQAHistory();
     }
-  }, [params.id]);
+  }, [fileId]);
 
-  const fetchDocument = async (fileId: string) => {
+  const fetchDocumentDetail = async () => {
     try {
-      // 彻底写死API路径，排除环境变量干扰
-      const apiBase = 'http://localhost:8000';
-      const response = await fetch(`${apiBase}/api/documents/${fileId}`);
-      if (!response.ok) {
-        throw new Error('获取文档失败');
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/documents/${fileId}`
+      );
+      if (response.data.success) {
+        setDocument(response.data.data);
       }
-      const result = await response.json();
-      setDocument(result.data);
     } catch (error) {
-      console.error('获取文档错误:', error);
-      toast.error('获取文档失败');
-      router.push('/');
+      console.error('获取文档详情失败:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const generateSummary = async () => {
-    if (!document) return;
-    
-    setGenerating(true);
+  const fetchQAHistory = async () => {
     try {
-      const apiBase = 'http://localhost:8000';
-      const response = await fetch(`${apiBase}/api/ai/summarize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file_id: document.file_id }),
-      });
-
-      if (!response.ok) {
-        throw new Error('生成摘要失败');
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/documents/${fileId}/qa`
+      );
+      if (response.data.success) {
+        setQAHistory(response.data.data);
       }
-
-      const result = await response.json();
-      setDocument(prev => prev ? { ...prev, ...result.data, summary: result.data.summary ? JSON.parse(JSON.stringify(result.data.summary)) : undefined } : null);
-      toast.success('摘要生成成功');
-      // 强制重新拉取文档，确保页面刷新
-      await fetchDocument(document.file_id);
     } catch (error) {
-      console.error('生成摘要错误:', error);
-      toast.error('生成摘要失败');
-    } finally {
-      setGenerating(false);
+      console.error('获取问答历史失败:', error);
     }
   };
 
-  const generateKeywords = async () => {
-    if (!document) return;
-    
-    setGenerating(true);
+  const generateSummary = async () => {
+    setSummaryLoading(true);
     try {
-      const apiBase = 'http://localhost:8000';
-      const response = await fetch(`${apiBase}/api/ai/keywords`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ file_id: document.file_id }),
-      });
-
-      if (!response.ok) {
-        throw new Error('提取关键词失败');
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/ai/summarize`,
+        { file_id: fileId }
+      );
+      if (response.data.success) {
+        setDocument(prev => prev ? {
+          ...prev,
+          summary: {
+            purpose: response.data.data.purpose,
+            method: response.data.data.method,
+            finding: response.data.data.finding,
+            conclusion: response.data.data.conclusion,
+            keywords: response.data.data.keywords
+          }
+        } : null);
       }
-
-      const result = await response.json();
-      setDocument(prev => prev ? { ...prev, keywords: result.data.keywords } : null);
-      toast.success('关键词提取成功');
     } catch (error) {
-      console.error('提取关键词错误:', error);
-      toast.error('提取关键词失败');
+      console.error('生成摘要失败:', error);
     } finally {
-      setGenerating(false);
+      setSummaryLoading(false);
     }
   };
 
   const askQuestion = async () => {
-    if (!document || !question.trim()) return;
+    if (!question.trim()) return;
     
-    setAskingQuestion(true);
+    setAskLoading(true);
     try {
-      const apiBase = 'http://localhost:8000';
-      const response = await fetch(`${apiBase}/api/ai/ask`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          file_id: document.file_id,
-          question: question.trim()
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('问答失败');
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/ai/ask`,
+        { file_id: fileId, question }
+      );
+      if (response.data.success) {
+        setQAHistory(prev => [{
+          id: Date.now().toString(),
+          question,
+          answer: response.data.data.answer,
+          created_at: new Date().toISOString()
+        }, ...prev]);
+        setQuestion('');
       }
-
-      const result = await response.json();
-      setAnswer(result.data.answer);
-      toast.success('问答成功');
     } catch (error) {
-      console.error('问答错误:', error);
-      toast.error('问答失败');
+      console.error('问答失败:', error);
     } finally {
-      setAskingQuestion(false);
+      setAskLoading(false);
     }
+  };
+
+  const deleteDocument = async () => {
+    if (!confirm('确定要删除这个文档吗？此操作不可恢复。')) return;
+    
+    try {
+      const response = await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/documents/${fileId}`
+      );
+      if (response.data.success) {
+        router.push('/documents');
+      }
+    } catch (error) {
+      console.error('删除文档失败:', error);
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#f6f7fa] to-[#e9ebf1] dark:from-darkbg dark:to-[#23232b] flex items-center justify-center animate-fade-in">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black dark:border-white mx-auto mb-4"></div>
-          <p className="text-gray-500 dark:text-gray-300 text-lg font-medium">加载文档中...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">加载文档详情中...</p>
         </div>
       </div>
     );
@@ -158,14 +163,14 @@ export default function DocumentDetailPage() {
 
   if (!document) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#f6f7fa] to-[#e9ebf1] dark:from-darkbg dark:to-[#23232b] flex items-center justify-center animate-fade-in">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-500 dark:text-gray-300 mb-4 text-lg">文档不存在</p>
+          <p className="text-gray-600 dark:text-gray-400">文档不存在</p>
           <button
-            onClick={() => router.push('/')} 
-            className="btn-primary text-lg px-8 py-2"
+            onClick={() => router.push('/documents')}
+            className="mt-4 btn-primary"
           >
-            返回首页
+            返回文档列表
           </button>
         </div>
       </div>
@@ -173,100 +178,164 @@ export default function DocumentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#f6f7fa] to-[#e9ebf1] dark:from-darkbg dark:to-[#23232b] pb-20 pt-28 animate-fade-in">
-      {/* 头部导航留白已由全局Header实现 */}
-      <div className="container mx-auto px-2 sm:px-4 py-8">
-        <div className="grid lg:grid-cols-3 gap-10">
-          {/* 左侧主要内容 */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* 文档摘要 */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card shadow-2xl rounded-3xl bg-white/80 dark:bg-darkglass backdrop-blur-md border border-gray-100 dark:border-gray-800 p-10 animate-fade-in"
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto px-4 py-8">
+        {/* 头部导航 */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => router.push('/documents')}
+              className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
             >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white flex items-center gap-2">
-                  <FiFileText className="w-6 h-6" />
-                  智能摘要
-                </h2>
-                {!document.summary && (
-                  <button
-                    onClick={generateSummary}
-                    disabled={generating}
-                    className="btn-primary text-lg px-8 py-2"
-                  >
-                    {generating ? '生成中...' : '生成摘要'}
-                  </button>
-                )}
-              </div>
-              {document.summary && typeof document.summary === 'object' ? (
-                <div className="space-y-4 text-left text-lg text-gray-900 dark:text-white">
-                  <div><b>研究目的：</b>{(document.summary as any).purpose || '-'}</div>
-                  <div><b>方法概述：</b>{(document.summary as any).method || '-'}</div>
-                  <div><b>关键发现：</b>{(document.summary as any).finding || '-'}</div>
-                  <div><b>结论总结：</b>{(document.summary as any).conclusion || '-'}</div>
-                  <div><b>关键词：</b>{(document.summary as any).keywords || '-'}</div>
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-lg">
-                  <FiFileText className="w-14 h-14 mx-auto mb-6 opacity-50" />
-                  <p>点击"生成摘要"按钮开始AI分析</p>
-                </div>
-              )}
-            </motion.div>
-
-            {/* 智能问答 */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="card shadow-2xl rounded-3xl bg-white/80 dark:bg-darkglass backdrop-blur-md border border-gray-100 dark:border-gray-800 p-10 animate-fade-in"
-            >
-              <h2 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-                <FiMessageCircle className="w-6 h-6" />
-                智能问答
-              </h2>
-              <div className="space-y-6">
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    className="input-field text-lg font-medium"
-                    placeholder="请输入你的科研问题..."
-                    disabled={askingQuestion}
-                  />
-                  <button
-                    onClick={askQuestion}
-                    className="btn-primary text-lg px-8 py-2 flex items-center gap-2"
-                    disabled={askingQuestion || !question.trim()}
-                  >
-                    <FiMessageCircle className="w-5 h-5" />
-                    提问
-                  </button>
-                </div>
-                {askingQuestion && <div className="text-gray-400 dark:text-gray-300 text-base">AI思考中…</div>}
-                {answer && <div className="mt-6 text-gray-900 dark:text-white whitespace-pre-line bg-gray-50 dark:bg-darkcard rounded-xl p-6 border border-gray-100 dark:border-gray-800 text-lg font-medium shadow-inner">{answer}</div>}
-              </div>
-            </motion.div>
+              <FiArrowLeft className="w-5 h-5" />
+              <span>返回列表</span>
+            </button>
+            <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {document.original_name}
+            </h1>
           </div>
-          {/* 右侧文档信息 */}
-          <div className="space-y-8">
-            <div className="card shadow-xl rounded-3xl bg-white/80 dark:bg-darkglass backdrop-blur-md border border-gray-100 dark:border-gray-800 p-8 animate-fade-in">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">文档信息</h3>
-              <div className="text-gray-700 dark:text-gray-300 text-lg space-y-2">
-                <div><span className="font-semibold">文件名：</span>{document.original_name}</div>
-                <div><span className="font-semibold">页数：</span>{document.page_count}</div>
-                <div><span className="font-semibold">大小：</span>{(document.file_size / 1024 / 1024).toFixed(2)} MB</div>
-                <div><span className="font-semibold">上传时间：</span>{document.upload_time.slice(0, 19).replace('T', ' ')}</div>
+          
+          <button
+            onClick={deleteDocument}
+            className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+          >
+            <FiTrash2 className="w-4 h-4" />
+            <span>删除文档</span>
+          </button>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* 左侧：文档信息和摘要 */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* 文档基本信息 */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-3 mb-4">
+                <FiFileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">文档信息</h2>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">文件大小：</span>
+                  <span className="text-gray-900 dark:text-white">{formatFileSize(document.file_size)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">页数：</span>
+                  <span className="text-gray-900 dark:text-white">{document.page_count} 页</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">上传时间：</span>
+                  <span className="text-gray-900 dark:text-white">
+                    {new Date(document.upload_time).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500 dark:text-gray-400">文档ID：</span>
+                  <span className="text-gray-900 dark:text-white font-mono text-xs">{document.file_id}</span>
+                </div>
               </div>
             </div>
-            <div className="card shadow-xl rounded-3xl bg-white/80 dark:bg-darkglass backdrop-blur-md border border-gray-100 dark:border-gray-800 p-8 animate-fade-in">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">内容预览</h3>
-              <div className="text-gray-700 dark:text-gray-300 text-base whitespace-pre-line max-h-60 overflow-y-auto">
-                {document.text_preview}
+
+            {/* 智能摘要 */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">智能摘要</h2>
+                <button
+                  onClick={generateSummary}
+                  disabled={summaryLoading}
+                  className="btn-secondary"
+                >
+                  {summaryLoading ? '生成中...' : '生成摘要'}
+                </button>
               </div>
+              
+              {document.summary ? (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">研究目的</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{document.summary.purpose}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">方法概述</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{document.summary.method}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">关键发现</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{document.summary.finding}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 dark:text-white mb-2">结论总结</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{document.summary.conclusion}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>点击"生成摘要"按钮开始AI智能分析</p>
+                </div>
+              )}
+            </div>
+
+            {/* 关键词提取 */}
+            <KeywordExtraction 
+              fileId={fileId} 
+              initialKeywords={document.keywords} 
+            />
+          </div>
+
+          {/* 右侧：问答系统 */}
+          <div className="space-y-6">
+            {/* 问答输入 */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center space-x-3 mb-4">
+                <FiMessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">智能问答</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <textarea
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="请输入您想了解的问题..."
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                  rows={3}
+                />
+                <button
+                  onClick={askQuestion}
+                  disabled={askLoading || !question.trim()}
+                  className="w-full btn-primary"
+                >
+                  {askLoading ? '思考中...' : '提问'}
+                </button>
+              </div>
+            </div>
+
+            {/* 问答历史 */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">问答历史</h3>
+              
+              {qaHistory.length > 0 ? (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {qaHistory.map((qa) => (
+                    <div key={qa.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <div className="mb-2">
+                        <p className="font-medium text-gray-900 dark:text-white">Q: {qa.question}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {new Date(qa.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                        <p className="text-gray-700 dark:text-gray-300">A: {qa.answer}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <FiMessageCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>还没有问答记录，开始提问吧！</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -39,8 +39,7 @@ fi
 if [ ! -f "backend/.env" ]; then
     echo "⚠️  创建环境变量文件..."
     cp backend/.env.example backend/.env
-    echo "📝 请编辑 backend/.env 文件配置您的OpenAI API密钥"
-    echo "   最少需要配置: OPENAI_API_KEY=your_api_key_here"
+    echo "📝 请编辑 backend/.env 文件配置您的API密钥"
 fi
 
 # 创建上传目录
@@ -53,10 +52,12 @@ echo "🔧 启动开发服务器..."
 echo "   - 后端API: http://localhost:8000"
 echo "   - 前端应用: http://localhost:3000"
 echo "   - 系统测试: http://localhost:3000/test"
+echo "   - 文档管理: http://localhost:3000/documents"
 echo ""
 echo "💡 提示："
-echo "   - 首次使用请配置 backend/.env 文件中的 OPENAI_API_KEY"
+echo "   - DeepSeek API已配置，可直接使用AI功能"
 echo "   - 数据库和Redis为可选配置，不配置将使用内存存储"
+echo "   - 支持用户注册登录功能"
 echo "   - 按 Ctrl+C 停止服务"
 echo ""
 

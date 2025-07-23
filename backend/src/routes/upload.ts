@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { documents } from './document';
+import { documentService } from '../services/documentService';
 // @ts-ignore
 import pdfParse from 'pdf-parse';
 
@@ -76,7 +76,8 @@ router.post('/pdf', upload.single('file'), async (req: Request, res: Response): 
       upload_time: new Date().toISOString(),
       file_path: file.path
     };
-    documents.set(documentInfo.file_id, documentInfo);
+    
+    await documentService.saveDocument(documentInfo);
     res.json({
       success: true,
       message: 'PDF文件上传并解析成功',

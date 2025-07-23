@@ -1,4 +1,10 @@
 
+// 根据环境加载配置
+if (process.env.NODE_ENV === 'production') {
+  require('dotenv').config({ path: '.env.production' });
+} else {
+  require('dotenv').config();
+}
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
@@ -10,17 +16,25 @@ import documentRoutes from './routes/document';
 import aiRoutes from './routes/ai';
 import arxivRoutes from './routes/arxiv';
 import semanticRoutes from './routes/semantic';
+import authRoutes from './routes/auth';
+import searchRoutes from './routes/search';
+import batchRoutes from './routes/batch';
 
 import { notFound } from './middleware/notFound';
 import { errorHandler } from './middleware/errorHandler';
 
 const app = express();
-const PORT = 8000;
+const PORT = process.env.PORT || 8000;
 
 // 中间件
 app.use(helmet());
+// 动态CORS配置
+const corsOrigins = process.env.NODE_ENV === 'production' 
+  ? [process.env.CORS_ORIGIN, process.env.FRONTEND_URL].filter(Boolean)
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: corsOrigins,
   credentials: true
 }));
 app.use(morgan('combined'));
@@ -40,6 +54,9 @@ app.get('/health', (req, res) => {
 });
 
 // API路由
+app.use('/api/auth', authRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/batch', batchRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/ai', aiRoutes);

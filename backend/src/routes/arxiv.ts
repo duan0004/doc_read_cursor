@@ -6,7 +6,7 @@ import { promisify } from 'util';
 const router = Router();
 
 // DeepSeek API 配置
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-431f809401274d7ea71b59bf7a4ee6d5';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_MODEL = 'deepseek-chat';
 

@@ -1,0 +1,34 @@
+{
+  "project": "doc-read-ai",
+  "services": [
+    {
+      "name": "backend",
+      "path": "backend",
+      "type": "node",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm start",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "8000"
+      }
+    },
+    {
+      "name": "frontend",
+      "path": "frontend",
+      "type": "nextjs",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npm start",
+      "env": {
+        "NODE_ENV": "production",
+        "NEXT_PUBLIC_API_URL": "${SERVICE_BACKEND_URL}/api"
+      }
+    }
+  ],
+  "databases": [
+    {
+      "name": "postgres",
+      "type": "postgresql",
+      "version": "15"
+    }
+  ]
+}

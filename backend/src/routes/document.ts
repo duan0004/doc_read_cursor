@@ -1,26 +1,13 @@
 import { Router, Request, Response } from 'express';
+import { documentService } from '../services/documentService';
 
 const router = Router();
 
-// 内存中的文档存储
-interface Document {
-  file_id: string;
-  original_name: string;
-  file_size: number;
-  page_count: number;
-  text_content: string;
-  upload_time: string;
-  file_path: string;
-  summary?: string;
-  keywords?: string[];
-}
-
-const documents: Map<string, Document> = new Map();
-
 // 获取文档列表
-router.get('/', (req: Request, res: Response): void => {
+router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
-    const documentList = Array.from(documents.values()).map(doc => ({
+    const documents = await documentService.getAllDocuments();
+    const documentList = documents.map(doc => ({
       file_id: doc.file_id,
       original_name: doc.original_name,
       file_size: doc.file_size,
@@ -33,19 +20,21 @@ router.get('/', (req: Request, res: Response): void => {
       data: { documents: documentList, total: documentList.length }
     });
   } catch (error) {
+    console.error('获取文档列表失败:', error);
     res.status(500).json({ success: false, message: '获取文档列表失败' });
   }
 });
 
 // 获取文档详情
-router.get('/:file_id', (req: Request, res: Response): void => {
+router.get('/:file_id', async (req: Request, res: Response): Promise<void> => {
   try {
     const file_id = req.params.file_id;
     if (!file_id) {
       res.status(400).json({ success: false, message: '文件ID不能为空' });
       return;
     }
-    const document = documents.get(file_id);
+    
+    const document = await documentService.getDocument(file_id);
     
     if (!document) {
       res.status(404).json({ success: false, message: '文档不存在' });
@@ -65,10 +54,57 @@ router.get('/:file_id', (req: Request, res: Response): void => {
       }
     });
   } catch (error) {
+    console.error('获取文档详情失败:', error);
     res.status(500).json({ success: false, message: '获取文档详情失败' });
   }
 });
 
-export { documents };
+// 删除文档
+router.delete('/:file_id', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const file_id = req.params.file_id;
+    if (!file_id) {
+      res.status(400).json({ success: false, message: '文件ID不能为空' });
+      return;
+    }
+    
+    const deleted = await documentService.deleteDocument(file_id);
+    
+    if (!deleted) {
+      res.status(404).json({ success: false, message: '文档不存在' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      message: '文档删除成功'
+    });
+  } catch (error) {
+    console.error('删除文档失败:', error);
+    res.status(500).json({ success: false, message: '删除文档失败' });
+  }
+});
+
+// 获取文档问答历史
+router.get('/:file_id/qa', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const file_id = req.params.file_id;
+    if (!file_id) {
+      res.status(400).json({ success: false, message: '文件ID不能为空' });
+      return;
+    }
+    
+    const qaHistory = await documentService.getQAHistory(file_id);
+    
+    res.json({
+      success: true,
+      data: qaHistory
+    });
+  } catch (error) {
+    console.error('获取问答历史失败:', error);
+    res.status(500).json({ success: false, message: '获取问答历史失败' });
+  }
+});
+
 export default router;
  

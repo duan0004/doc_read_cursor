@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import Link from "next/link";
 import { FileUpload } from "@/components/FileUpload";
 import { FeatureCard } from "@/components/FeatureCards";
 import { SearchBar } from "@/components/SearchBar";
@@ -147,6 +148,29 @@ export default function HomePage() {
                 </div>
                 <div className="mb-8">
                   <FileUpload />
+                </div>
+                
+                {/* 快捷链接 */}
+                <div className="text-center space-y-2">
+                  <Link
+                    href="/documents"
+                    className="inline-flex items-center space-x-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+                  >
+                    <span>查看已上传的文档</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                  <div className="text-gray-400 dark:text-gray-500">|</div>
+                  <Link
+                    href="/search"
+                    className="inline-flex items-center space-x-2 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                  >
+                    <span>进入搜索中心</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
                 </div>
                 {/* 解读功能特点 */}
                 <div className="space-y-4">

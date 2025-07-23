@@ -69,15 +69,22 @@ cp backend/.env.example backend/.env
 
 3. **配置环境变量** (编辑 `backend/.env`)
 ```bash
+# 服务器配置
+PORT=8000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:3000
+
 # 必需配置
 DEEPSEEK_API_KEY=your_deepseek_api_key_here
 
 # 可选配置
+OPENAI_API_KEY=your_openai_api_key_here
 SEMANTIC_API_KEY=your_semantic_scholar_api_key_here
-DATABASE_URL=postgresql://username:password@localhost:5432/doc_read_ai
+DATABASE_URL=postgresql://postgres:password@localhost:5432/doc_read_ai
 REDIS_URL=redis://localhost:6379
-PORT=8000
-CORS_ORIGIN=http://localhost:3000
+
+# 用户认证
+JWT_SECRET=your_jwt_secret_here_change_in_production
 ```
 
 4. **启动服务**
@@ -209,6 +216,65 @@ Response: {
 }
 ```
 
+### 关键词提取
+```http
+POST /api/ai/keywords
+Content-Type: application/json
+
+Body: { file_id: string }
+Response: {
+  success: boolean,
+  data: {
+    file_id: string,
+    keywords: string[],
+    extracted_at: string
+  }
+}
+```
+
+### 用户认证
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+Body: { email: string, password: string, nickname: string }
+Response: {
+  success: boolean,
+  data: {
+    user: { id: string, email: string, nickname: string, role: string },
+    token: string
+  }
+}
+```
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+Body: { email: string, password: string }
+Response: {
+  success: boolean,
+  data: {
+    user: { id: string, email: string, nickname: string, role: string },
+    token: string
+  }
+}
+```
+
+```http
+GET /api/auth/me
+Authorization: Bearer <token>
+Response: {
+  success: boolean,
+  data: {
+    id: string,
+    email: string,
+    nickname: string,
+    role: string
+  }
+}
+```
+
 ## 🗄️ 数据库设计
 
 ```sql
@@ -252,21 +318,26 @@ CREATE TABLE document_chunks (
 
 ✅ **已完成功能**
 - PDF文档上传和解析
-- 智能摘要生成
+- 智能摘要生成（研究目的、方法、发现、结论）
 - 关键词自动提取
 - 基于文档的智能问答
-- 文档列表管理
+- 文档列表管理和详情查看
+- 问答历史记录
 - 响应式Web界面
 - 系统健康检查
 - arXiv 文献检索（支持语义重排序）
 - Semantic Scholar 文献检索（支持引用分析）
 - 论文详情和作者信息获取
 - 开放获取论文PDF下载
+- 数据库持久化存储（PostgreSQL）
+- 用户注册登录系统
+- JWT身份认证
+- 文档权限管理
 
 🚧 **开发中功能**
-- 数据库持久化存储
 - 向量化搜索
 - 批量文档处理
+- 高级用户权限管理
 
 ## 🔧 系统要求
 
